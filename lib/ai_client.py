@@ -42,7 +42,45 @@ class OllamaChatClient:
         # TODO: Append the assistant message after a successful response.
         # TODO: Return the assistant response text.
         # TODO: Roll back the failed user message and raise RuntimeError if needed.
-        pass
+        if not prompt or not prompt.strip():
+            raise ValueError("Prompt cannot be empty")
+        
+        user_message = {
+            "role": "user",
+            "content": prompt.strip()
+        }
+        self.history.append(user_message)
+
+        try:
+            response = ollama.chat(
+                model=self.model_name,
+                messages=self.history,
+                )
+
+            if isinstance(response, dict):
+                message_node = response.get("message")
+                if not message_node or not isinstance(message_node, dict):
+                    raise ValueError("Unusable dict shape")
+                content = message_node.get("content")
+                role = message_node.get("role", "assistant")
+            else:
+                message_node = getattr(response, "message", None)
+                if not message_node:
+                    raise ValueError("Unusable object shape")
+                content = getattr(message_node, "content", None)
+                role = getattr(message_node, "role", "assistant")
+
+            # Content verification
+            if content is None or not isinstance(content, str) or not content.strip():
+                raise ValueError("Content is unusable")
+
+            assistant_message = {"role": role, "content": content}
+            self.history.append(assistant_message)
+            return content
+
+        except Exception as e:
+            self.history.pop()  # Remove failed user message from history
+            raise RuntimeError("AI service request failed")
 
     def reset(self):
         """
@@ -52,7 +90,7 @@ class OllamaChatClient:
         - After this method runs, self.history should be an empty list.
         """
         # TODO: Clear conversation history.
-        pass
+        self.history = []
 
     def message_count(self):
         """
@@ -63,7 +101,7 @@ class OllamaChatClient:
         - Count both user messages and assistant messages.
         """
         # TODO: Return the number of stored messages.
-        pass
+        return len(self.history)
 
     def get_transcript(self):
         """
@@ -75,4 +113,4 @@ class OllamaChatClient:
         - The returned message dictionaries should also be copies.
         """
         # TODO: Return a copy of the transcript.
-        pass
+        return [msg.copy() for msg in self.history]

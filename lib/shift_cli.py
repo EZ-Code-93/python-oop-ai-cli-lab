@@ -28,7 +28,9 @@ class ShiftBriefCLI:
         - Include the available commands.
         """
         # TODO: Print welcome text and command help.
-        pass
+        print("Welcome to the Shift Handoff Brief CLI!")
+        print("Available commands:")
+        print(self.command_help())
 
     def command_help(self):
         """
@@ -44,7 +46,15 @@ class ShiftBriefCLI:
         - quit
         """
         # TODO: Return a string describing the available commands.
-        pass
+        return (
+            "brief <shift notes> - Create a new handoff brief from shift notes.\n"
+            "revise <feedback> - Revise the previous handoff brief based on feedback.\n"
+            "history - Show the current message count.\n"
+            "reset - Clear conversation history.\n"
+            "help - Show this command guidance.\n"
+            "exit - Quit the application.\n"
+            "quit - Quit the application."
+        )
 
     def handle_command(self, raw_input):
         """
@@ -68,7 +78,45 @@ class ShiftBriefCLI:
         # TODO: Parse the command and payload.
         # TODO: Route supported commands.
         # TODO: Return helpful messages for errors and unknown commands.
-        pass
+        if not raw_input or not raw_input.strip():
+            return "Input Error: Command cannot be blank."
+        parts = raw_input.strip().split(maxsplit=1)
+        command = parts[0].lower()
+        payload = parts[1] if len(parts) > 1 else ""
+
+        try:
+            if command == "brief":
+                if not payload:
+                    return "Input Error: Shift notes cannot be blank."
+                return self.brief_builder.create_brief(self.ai_client, payload)
+                
+            elif command == "revise":
+                if not payload:
+                    return "Input Error: Revision feedback cannot be blank."
+                return self.brief_builder.revise_brief(self.ai_client, payload)
+                
+            elif command == "history":
+                return f"Conversation messages count: {self.ai_client.message_count()}"
+                
+            elif command == "reset":
+                self.ai_client.reset()
+                return "Conversation history reset."
+                
+            elif command == "help":
+                return self.command_help()
+                
+            elif command in ["exit", "quit"]:
+                self.running = False
+                return "Goodbye!"
+                
+            else:
+                return f"Input Error: Unknown command '{command}'. Use 'help' for layout."
+
+        except ValueError as ve:
+            return f"Input Error: {ve}"
+        except RuntimeError as re:
+            return f"Service Error: {re}"
+        
 
     def run(self):
         """
@@ -84,7 +132,16 @@ class ShiftBriefCLI:
         """
         # TODO: Display welcome text.
         # TODO: Run the input loop.
-        pass
+        self.display_welcome()
+        while self.running:
+            try:
+                user_input = input("> ")
+                message = self.handle_command(user_input)
+                print(message)
+            except EOFError:
+                self.running = False
+                print("Goodbye!")
+                break
 
 
 def main():
