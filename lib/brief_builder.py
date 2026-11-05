@@ -24,7 +24,14 @@ class HandoffBriefBuilder:
         """
         # TODO: Validate notes.
         # TODO: Build and return a prompt for a new handoff brief.
-        pass
+        if not notes or not notes.strip():
+            raise ValueError("Shift notes cannot be empty")
+
+        prompt = f"Shift Notes:\n{notes.strip()}\n\n"
+        for section in self.REQUIRED_SECTIONS:
+            prompt += f"{section}\n"
+        prompt += "\nPlease fill out the above sections for this shift handoff brief. Do not invent details. Use 'Unknown' when details are not provided."
+        return prompt
 
     def build_revision_prompt(self, feedback):
         """
@@ -39,7 +46,14 @@ class HandoffBriefBuilder:
         """
         # TODO: Validate feedback.
         # TODO: Build and return a revision prompt.
-        pass
+        if not feedback or not feedback.strip():
+            raise ValueError("Revision feedback cannot be empty")
+
+        prompt = f"Revision Feedback:\n{feedback.strip()}\n\n"
+        for section in self.REQUIRED_SECTIONS:
+            prompt += f"{section}\n"
+        prompt += "\nPlease revise the previous shift handoff brief based on the earlier feedback. Do not invent details."
+        return prompt
 
     def is_usable_brief(self, response_text):
         """
@@ -51,7 +65,12 @@ class HandoffBriefBuilder:
         - Return False if one or more required sections are missing.
         """
         # TODO: Check whether response_text contains all required sections.
-        pass
+        if not response_text or not response_text.strip():
+            return False
+        for section in self.REQUIRED_SECTIONS:
+            if section not in response_text:
+                return False
+        return True
 
     def format_brief(self, response_text):
         """
@@ -63,7 +82,7 @@ class HandoffBriefBuilder:
         - Preserve the AI response content.
         """
         # TODO: Return a formatted created-brief string.
-        pass
+        return f"\nShift Handoff Brief\n{response_text.strip()}"
 
     def create_brief(self, ai_client, notes):
         """
@@ -80,7 +99,11 @@ class HandoffBriefBuilder:
         # TODO: Send the prompt through the AI client.
         # TODO: Verify the response structure.
         # TODO: Return the formatted brief.
-        pass
+        prompt = self.build_brief_prompt(notes)
+        response = ai_client.send(prompt)
+        if not self.is_usable_brief(response):
+            raise RuntimeError("AI response did not include required sections")
+        return self.format_brief(response)
 
     def revise_brief(self, ai_client, feedback):
         """
@@ -97,4 +120,9 @@ class HandoffBriefBuilder:
         # TODO: Send the prompt through the AI client.
         # TODO: Verify the response structure.
         # TODO: Return the formatted revised brief.
-        pass
+        prompt = self.build_revision_prompt(feedback)
+        response = ai_client.send(prompt)
+        if not self.is_usable_brief(response):
+            raise RuntimeError("AI response did not include required sections")
+        # Format for revised updates
+        return f"\nRevised Shift Handoff Brief\n{response.strip()}"
